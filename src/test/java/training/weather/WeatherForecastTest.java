@@ -1,17 +1,26 @@
 package training.weather;
 
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.Date;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Date;
+
+import static org.junit.Assert.assertNotNull;
 
 public class WeatherForecastTest {
 
-	@Test
-	public void unfinished_test() throws IOException {
-		WeatherForecast weatherForecast = new WeatherForecast();
-		String forecast = weatherForecast.getCityWeather("Madrid", new Date());
-		System.out.println(forecast);
-	}
+    private static final String CITY = "Madrid";
+
+    @Test
+    public void should_return_city_weather() throws IOException {
+        // Given
+        final WeatherForecast weatherForecast = new WeatherForecast();
+
+        // When
+        final String forecast = weatherForecast.getCityWeather(CITY, new Date());
+
+        // Then
+        assertNotNull(forecast);
+
+    }
 }
