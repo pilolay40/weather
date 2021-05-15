@@ -1,6 +1,7 @@
 package training.weather;
 
 import org.junit.Test;
+import training.weather.service.WeatherForecastService;
 
 import java.io.IOException;
 import java.util.Date;
@@ -14,7 +15,8 @@ public class WeatherForecastTest {
     @Test
     public void should_return_city_weather() throws IOException {
         // Given
-        final WeatherForecast weatherForecast = new WeatherForecast();
+        final WeatherForecastService weatherForecastService = new WeatherForecastService();
+        final WeatherForecast weatherForecast = new WeatherForecast(weatherForecastService);
 
         // When
         final String forecast = weatherForecast.getCityWeather(CITY, new Date());
