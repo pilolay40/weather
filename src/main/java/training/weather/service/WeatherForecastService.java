@@ -1,43 +1,45 @@
 package training.weather.service;
 
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestFactory;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import lombok.AllArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
+import training.weather.client.WeatherForecastAPI;
+import training.weather.dto.ConsolidatedWeather;
+import training.weather.dto.LocationResponse;
+import training.weather.dto.SearchResponse;
 
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.List;
+import java.util.Optional;
 
 import static training.weather.utils.FormatterDateUtils.buildDefaultDateIfNull;
 import static training.weather.utils.FormatterDateUtils.convertToLocalDate;
 
+@AllArgsConstructor
 public class WeatherForecastService {
     public static final int NEXT_DAYS = 6;
+    private final WeatherForecastAPI weatherForecastAPI;
 
-    public String getCityWeather(final String city, Date datetime) throws IOException {
-        datetime = buildDefaultDateIfNull(datetime);
+    public String getCityWeather(final String city, final Date datetime) {
+        final LocalDateTime localDateTime = convertToLocalDate(buildDefaultDateIfNull(datetime));
 
         if (this.isDateTimeBeforeNextSixDays(datetime)) {
-            HttpRequestFactory rf = new NetHttpTransport().createRequestFactory();
-            HttpRequest req = rf
-                    .buildGetRequest(new GenericUrl("https://www.metaweather.com/api/location/search/?query=" + city));
-            String r = req.execute().parseAsString();
-            final JSONArray array = new JSONArray(r);
-            final String woe = array.getJSONObject(0).get("woeid").toString();
-            rf = new NetHttpTransport().createRequestFactory();
-            req = rf.buildGetRequest(new GenericUrl("https://www.metaweather.com/api/location/" + woe));
-            r = req.execute().parseAsString();
-            final JSONArray results = new JSONObject(r).getJSONArray("consolidated_weather");
-            for (int i = 0; i < results.length(); i++) {
-                if (new SimpleDateFormat("yyyy-MM-dd").format(datetime)
-                        .equals(results.getJSONObject(i).get("applicable_date").toString())) {
-                    return results.getJSONObject(i).get("weather_state_name").toString();
-                }
+            return this.findWeatherStateName(city, localDateTime);
+        }
+        return "";
+    }
+
+    private String findWeatherStateName(final String city, final LocalDateTime localDateTime) {
+        final List<SearchResponse> searchResponses = this.weatherForecastAPI.retrieveSearchLocation(city);
+        if (ObjectUtils.isNotEmpty(searchResponses)) {
+            final LocationResponse locationResponse = this.weatherForecastAPI.retrieveLocation(searchResponses.get(0).getWoeid());
+            final Optional<ConsolidatedWeather> consolidatedWeatherOptional = locationResponse.getConsolidatedWeather().stream()
+                    .filter(consolidatedWeather -> consolidatedWeather.getApplicableDate().isEqual(localDateTime.toLocalDate()))
+                    .findFirst();
+            if (consolidatedWeatherOptional.isPresent()) {
+                return consolidatedWeatherOptional.get().getWeatherStateName();
             }
+
         }
         return "";
     }
